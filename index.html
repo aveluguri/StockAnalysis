@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Technical Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Stock Technical Analysis</h1>
+        <p class="subtitle">Enter a US stock ticker to generate technical analysis</p>
+
+        <div class="input-group">
+            <input
+                type="text"
+                id="tickerInput"
+                placeholder="e.g., AAPL, MSFT, GOOGL"
+                maxlength="10"
+                autocomplete="off"
+            >
+            <button id="enterButton">Enter</button>
+        </div>
+
+        <div id="validationMessage" class="validation-message"></div>
+
+        <div id="loadingContainer" class="loading-container hidden">
+            <div class="spinner"></div>
+            <p id="loadingMessage">Fetching data...</p>
+        </div>
+
+        <div id="resultsContainer" class="results-container hidden">
+            <h2>Technical Analysis: <span id="resultTicker"></span></h2>
+            <div class="results-grid">
+                <!-- Current Price Card -->
+                <div class="result-card">
+                    <h3>Current Price</h3>
+                    <p class="price-value" id="currentPrice">$0.00</p>
+                    <p class="price-date" id="priceDate">--</p>
+                </div>
+
+                <!-- 50-Day SMA Card -->
+                <div class="result-card">
+                    <h3>50-Day SMA</h3>
+                    <p class="sma-value" id="sma50">$0.00</p>
+                    <p class="sma-status" id="sma50Status">--</p>
+                </div>
+
+                <!-- 200-Day SMA Card -->
+                <div class="result-card">
+                    <h3>200-Day SMA</h3>
+                    <p class="sma-value" id="sma200">$0.00</p>
+                    <p class="sma-status" id="sma200Status">--</p>
+                </div>
+
+                <!-- Technical Signals -->
+                <div class="result-card full-width">
+                    <h3>Technical Signals</h3>
+                    <ul id="technicalSignals"></ul>
+                </div>
+            </div>
+            <button id="newAnalysisButton">Analyze Another Ticker</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
