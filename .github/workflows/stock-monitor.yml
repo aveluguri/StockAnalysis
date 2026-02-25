@@ -1,0 +1,32 @@
+name: Stock SMA Monitor
+
+on:
+  schedule:
+    # Mon–Fri at 21:00 UTC (4 PM ET, ~1 hour after NYSE close)
+    - cron: '0 21 * * 1-5'
+  workflow_dispatch: # allow manual trigger from Actions tab
+
+jobs:
+  run-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run SMA monitor
+        run: node monitor.js
+        env:
+          ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}

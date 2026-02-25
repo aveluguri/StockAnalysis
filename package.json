@@ -1,0 +1,12 @@
+{
+  "name": "stock-sma-monitor",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Scheduled stock SMA monitor with Gmail digest",
+  "scripts": {
+    "monitor": "node monitor.js"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.0"
+  }
+}

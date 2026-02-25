@@ -229,6 +229,112 @@ function processStockData(data, ticker) {
     };
 }
 
+// File Handle Storage
+let fileHandle = null;
+
+// File Export Functions
+async function saveToFile(ticker, currentPrice, sma50) {
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    // Create the line to append
+    const newLine = `${timestamp} | Ticker: ${ticker} | Current Price: $${currentPrice.toFixed(2)} | 50-Day SMA: ${sma50 !== null ? '$' + sma50.toFixed(2) : 'N/A'}\n`;
+
+    // Check if File System Access API is supported
+    if ('showSaveFilePicker' in window) {
+        try {
+            // If we don't have a file handle yet, get one
+            if (!fileHandle) {
+                fileHandle = await window.showSaveFilePicker({
+                    suggestedName: 'output.txt',
+                    types: [{
+                        description: 'Text Files',
+                        accept: { 'text/plain': ['.txt'] }
+                    }]
+                });
+
+                // If this is a new file, write header
+                const writable = await fileHandle.createWritable();
+                await writable.write('Stock Analysis Search History\n');
+                await writable.write('='.repeat(80) + '\n');
+                await writable.write(newLine);
+                await writable.close();
+                console.log('Created output.txt and saved first entry');
+            } else {
+                // Append to existing file
+                const file = await fileHandle.getFile();
+                const existingContent = await file.text();
+
+                const writable = await fileHandle.createWritable();
+                await writable.write(existingContent + newLine);
+                await writable.close();
+                console.log('Appended search data to output.txt');
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('File selection cancelled by user');
+            } else {
+                console.error('Error saving to file:', error);
+                alert('Error saving to file: ' + error.message);
+            }
+        }
+    } else {
+        // Fallback for browsers that don't support File System Access API
+        console.warn('File System Access API not supported, falling back to download');
+        fallbackSaveToFile(ticker, currentPrice, sma50, timestamp, newLine);
+    }
+}
+
+// Fallback function for browsers without File System Access API
+function fallbackSaveToFile(ticker, currentPrice, sma50, timestamp, newLine) {
+    // Get existing data from localStorage
+    let searchHistory = [];
+    try {
+        const stored = localStorage.getItem('search_history');
+        if (stored) {
+            searchHistory = JSON.parse(stored);
+        }
+    } catch (error) {
+        console.error('Error reading search history:', error);
+    }
+
+    // Add new entry
+    const newEntry = {
+        timestamp: timestamp,
+        ticker: ticker,
+        currentPrice: currentPrice,
+        sma50: sma50
+    };
+    searchHistory.push(newEntry);
+
+    // Save updated history to localStorage
+    try {
+        localStorage.setItem('search_history', JSON.stringify(searchHistory));
+    } catch (error) {
+        console.error('Error saving search history:', error);
+    }
+
+    // Create text file content with all history
+    let fileContent = 'Stock Analysis Search History\n';
+    fileContent += '='.repeat(80) + '\n';
+
+    searchHistory.forEach(entry => {
+        fileContent += `${entry.timestamp} | Ticker: ${entry.ticker} | Current Price: $${entry.currentPrice.toFixed(2)} | 50-Day SMA: ${entry.sma50 !== null ? '$' + entry.sma50.toFixed(2) : 'N/A'}\n`;
+    });
+
+    // Create a blob and trigger download
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'output.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log('Search data downloaded as output.txt (fallback mode)');
+}
+
 // UI Display Functions
 function showLoading(ticker) {
     const loadingContainer = document.getElementById('loadingContainer');
@@ -498,6 +604,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const analysis = processStockData(data, ticker);
                     hideLoading();
                     displayResults(analysis);
+
+                    // Save ticker data to file
+                    saveToFile(analysis.ticker, analysis.latestPrice, analysis.sma50);
                 })
                 .catch(error => {
                     hideLoading();
