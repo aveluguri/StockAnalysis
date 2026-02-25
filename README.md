@@ -24,7 +24,7 @@ A scheduled workflow runs Monday–Friday at 4 PM ET (after NYSE close) and emai
    | `ALPHA_VANTAGE_API_KEY` | Free key from [alphavantage.co](https://www.alphavantage.co) |
    | `EMAIL_USER` | Gmail address used to send the digest |
    | `EMAIL_PASS` | Gmail App Password (see below) |
-   | `EMAIL_TO` | Recipient email address |
+   | `EMAIL_TO` | Recipient(s) — comma-separated, e.g. `you@gmail.com,friend@gmail.com` |
    | `TICKERS` | Comma-separated ticker list, e.g. `AAPL,MSFT,GOOGL` |
 
 3. **Gmail App Password** — regular Gmail passwords are not accepted:
