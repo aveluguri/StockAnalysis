@@ -22,7 +22,7 @@ const EMAIL_TO   = process.env.EMAIL_TO;
 // Fetch
 // ---------------------------------------------------------------------------
 async function fetchStockData(ticker) {
-    const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=full&apikey=${API_KEY}`;
+    const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=compact&apikey=${API_KEY}`;
 
     console.log(`Fetching data for ${ticker}...`);
     const response = await fetch(url);
