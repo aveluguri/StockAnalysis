@@ -6,11 +6,9 @@ import nodemailer from 'nodemailer';
 // ---------------------------------------------------------------------------
 // Config — tickers loaded from TICKERS env var (comma-separated)
 // ---------------------------------------------------------------------------
-if (!process.env.TICKERS) {
-    console.error('Missing required environment variable: TICKERS (e.g. "AAPL,MSFT,GOOGL")');
-    process.exit(1);
-}
-const TICKERS = process.env.TICKERS.split(',').map(t => t.trim().toUpperCase()).filter(Boolean);
+const TICKERS = process.env.TICKERS
+    ? process.env.TICKERS.split(',').map(t => t.trim().toUpperCase()).filter(Boolean)
+    : ['CRWD', 'GOOG', 'MSFT', 'NVDA'];
 const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
 const API_RATE_LIMIT_DELAY = 12000; // 12 s between calls (free-tier limit)
 
