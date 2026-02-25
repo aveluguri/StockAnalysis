@@ -144,7 +144,7 @@ function processStockData(data, ticker) {
 
     // Calculate SMAs
     const sma50 = calculateSMA(closingPrices, 50);
-    const sma200 = calculateSMA(closingPrices, 200);
+    const sma100 = calculateSMA(closingPrices, 100);
 
     // Generate technical signals
     const signals = [];
@@ -182,37 +182,37 @@ function processStockData(data, ticker) {
         });
     }
 
-    // Price vs 200-day SMA
-    if (sma200 !== null) {
-        const diffPercent = ((latestPrice - sma200) / sma200 * 100).toFixed(2);
-        if (latestPrice > sma200) {
+    // Price vs 100-day SMA
+    if (sma100 !== null) {
+        const diffPercent = ((latestPrice - sma100) / sma100 * 100).toFixed(2);
+        if (latestPrice > sma100) {
             signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% above 200-day SMA ($${sma200.toFixed(2)}) - Bullish`,
+                text: `Price is ${Math.abs(diffPercent)}% above 100-day SMA ($${sma100.toFixed(2)}) - Bullish`,
                 type: 'bullish'
             });
         } else {
             signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% below 200-day SMA ($${sma200.toFixed(2)}) - Bearish`,
+                text: `Price is ${Math.abs(diffPercent)}% below 100-day SMA ($${sma100.toFixed(2)}) - Bearish`,
                 type: 'bearish'
             });
         }
     } else {
         signals.push({
-            text: `Insufficient data for 200-day SMA (need 200 days, have ${closingPrices.length}). Consider fetching full dataset.`,
+            text: `Insufficient data for 100-day SMA (need 100 days, have ${closingPrices.length})`,
             type: 'warning'
         });
     }
 
     // Golden Cross / Death Cross
-    if (sma50 !== null && sma200 !== null) {
-        if (sma50 > sma200) {
+    if (sma50 !== null && sma100 !== null) {
+        if (sma50 > sma100) {
             signals.push({
-                text: 'Golden Cross: 50-day SMA is above 200-day SMA - Bullish',
+                text: 'Golden Cross: 50-day SMA is above 100-day SMA - Bullish',
                 type: 'bullish'
             });
         } else {
             signals.push({
-                text: 'Death Cross: 50-day SMA is below 200-day SMA - Bearish',
+                text: 'Death Cross: 50-day SMA is below 100-day SMA - Bearish',
                 type: 'bearish'
             });
         }
@@ -223,7 +223,7 @@ function processStockData(data, ticker) {
         latestDate: latestDate,
         latestPrice: latestPrice,
         sma50: sma50,
-        sma200: sma200,
+        sma100: sma100,
         signals: signals,
         dataPoints: closingPrices.length
     };
@@ -371,8 +371,8 @@ function displayResults(analysis) {
     const priceDate = document.getElementById('priceDate');
     const sma50 = document.getElementById('sma50');
     const sma50Status = document.getElementById('sma50Status');
-    const sma200 = document.getElementById('sma200');
-    const sma200Status = document.getElementById('sma200Status');
+    const sma100 = document.getElementById('sma100');
+    const sma100Status = document.getElementById('sma100Status');
     const technicalSignals = document.getElementById('technicalSignals');
 
     // Populate results
@@ -397,21 +397,21 @@ function displayResults(analysis) {
         sma50Status.className = 'sma-status warning';
     }
 
-    // 200-day SMA
-    if (analysis.sma200 !== null) {
-        sma200.textContent = `$${analysis.sma200.toFixed(2)}`;
-        const diff200 = ((analysis.latestPrice - analysis.sma200) / analysis.sma200 * 100).toFixed(2);
-        if (analysis.latestPrice > analysis.sma200) {
-            sma200Status.textContent = `${Math.abs(diff200)}% above`;
-            sma200Status.className = 'sma-status bullish';
+    // 100-day SMA
+    if (analysis.sma100 !== null) {
+        sma100.textContent = `$${analysis.sma100.toFixed(2)}`;
+        const diff100 = ((analysis.latestPrice - analysis.sma100) / analysis.sma100 * 100).toFixed(2);
+        if (analysis.latestPrice > analysis.sma100) {
+            sma100Status.textContent = `${Math.abs(diff100)}% above`;
+            sma100Status.className = 'sma-status bullish';
         } else {
-            sma200Status.textContent = `${Math.abs(diff200)}% below`;
-            sma200Status.className = 'sma-status bearish';
+            sma100Status.textContent = `${Math.abs(diff100)}% below`;
+            sma100Status.className = 'sma-status bearish';
         }
     } else {
-        sma200.textContent = 'N/A';
-        sma200Status.textContent = 'Insufficient data';
-        sma200Status.className = 'sma-status warning';
+        sma100.textContent = 'N/A';
+        sma100Status.textContent = 'Insufficient data';
+        sma100Status.className = 'sma-status warning';
     }
 
     // Technical signals
