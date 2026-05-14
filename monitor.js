@@ -153,6 +153,8 @@ function processStockData(data, ticker) {
     const latestPrice   = parseFloat(timeSeries[latestDate]['4. close']);
     const closingPrices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
 
+    const sma10  = calculateSMA(closingPrices, 10);
+    const sma20  = calculateSMA(closingPrices, 20);
     const sma50  = calculateSMA(closingPrices, 50);
     const sma100 = calculateSMA(closingPrices, 100);
     const rsi    = calculateRSI(closingPrices);
@@ -166,6 +168,22 @@ function processStockData(data, ticker) {
     const daysDiff = Math.floor((Date.now() - new Date(latestDate)) / (1000 * 60 * 60 * 24));
     if (daysDiff > 3) {
         signals.push({ text: `Warning: Data is ${daysDiff} days old`, type: 'warning' });
+    }
+
+    // Price vs SMA-10
+    if (sma10 !== null) {
+        const diff = ((latestPrice - sma10) / sma10 * 100).toFixed(2);
+        signals.push(latestPrice > sma10
+            ? { text: `${Math.abs(diff)}% above 10-day SMA ($${sma10.toFixed(2)}) — Bullish`, type: 'bullish' }
+            : { text: `${Math.abs(diff)}% below 10-day SMA ($${sma10.toFixed(2)}) — Bearish`, type: 'bearish' });
+    }
+
+    // Price vs SMA-20
+    if (sma20 !== null) {
+        const diff = ((latestPrice - sma20) / sma20 * 100).toFixed(2);
+        signals.push(latestPrice > sma20
+            ? { text: `${Math.abs(diff)}% above 20-day SMA ($${sma20.toFixed(2)}) — Bullish`, type: 'bullish' }
+            : { text: `${Math.abs(diff)}% below 20-day SMA ($${sma20.toFixed(2)}) — Bearish`, type: 'bearish' });
     }
 
     // Price vs SMA-50
@@ -184,11 +202,18 @@ function processStockData(data, ticker) {
             : { text: `${Math.abs(diff)}% below 100-day SMA ($${sma100.toFixed(2)}) — Bearish`, type: 'bearish' });
     }
 
-    // Golden / Death Cross
+    // Short-term Golden / Death Cross (SMA-10 vs SMA-20)
+    if (sma10 !== null && sma20 !== null) {
+        signals.push(sma10 > sma20
+            ? { text: 'Short-term Golden Cross: 10-day SMA above 20-day SMA — Bullish', type: 'bullish' }
+            : { text: 'Short-term Death Cross: 10-day SMA below 20-day SMA — Bearish', type: 'bearish' });
+    }
+
+    // Long-term Golden / Death Cross (SMA-50 vs SMA-100)
     if (sma50 !== null && sma100 !== null) {
         signals.push(sma50 > sma100
-            ? { text: 'Golden Cross: 50-day SMA above 100-day SMA — Bullish', type: 'bullish' }
-            : { text: 'Death Cross: 50-day SMA below 100-day SMA — Bearish', type: 'bearish' });
+            ? { text: 'Long-term Golden Cross: 50-day SMA above 100-day SMA — Bullish', type: 'bullish' }
+            : { text: 'Long-term Death Cross: 50-day SMA below 100-day SMA — Bearish', type: 'bearish' });
     }
 
     // RSI
@@ -222,6 +247,8 @@ function processStockData(data, ticker) {
         ticker: ticker.toUpperCase(),
         latestDate,
         latestPrice,
+        sma10,
+        sma20,
         sma50,
         sma100,
         rsi,
@@ -258,7 +285,7 @@ function buildEmailBody(results) {
     for (const r of results) {
         if (r.error) { text += `${r.ticker}: ERROR — ${r.error}\n\n`; continue; }
         text += `${r.ticker}  |  $${r.latestPrice.toFixed(2)}  |  As of ${r.latestDate}\n`;
-        text += `  SMA-50: ${fmt(r.sma50, 2, '$')}  |  SMA-100: ${fmt(r.sma100, 2, '$')}\n`;
+        text += `  SMA-10: ${fmt(r.sma10, 2, '$')}  |  SMA-20: ${fmt(r.sma20, 2, '$')}  |  SMA-50: ${fmt(r.sma50, 2, '$')}  |  SMA-100: ${fmt(r.sma100, 2, '$')}\n`;
         text += `  RSI(14): ${fmt(r.rsi, 1)}  |  MACD: ${r.macd ? r.macd.macd.toFixed(3) : 'N/A'}  |  Signal: ${r.macd ? r.macd.signal.toFixed(3) : 'N/A'}\n`;
         text += `  Bollinger: $${fmt(r.bb?.lower, 2)} – $${fmt(r.bb?.upper, 2)}\n`;
         text += `  Momentum — 1W: ${fmtPct(r.mom?.week)}  |  1M: ${fmtPct(r.mom?.month)}\n`;
@@ -272,7 +299,7 @@ function buildEmailBody(results) {
     let smaRows = '';
     for (const r of results) {
         if (r.error) {
-            smaRows += `<tr><td colspan="5" style="color:#dc2626;padding:8px 12px">${r.ticker}: ${r.error}</td></tr>`;
+            smaRows += `<tr><td colspan="7" style="color:#dc2626;padding:8px 12px">${r.ticker}: ${r.error}</td></tr>`;
             continue;
         }
         const signalsHtml = r.signals.map(s =>
@@ -282,6 +309,8 @@ function buildEmailBody(results) {
         <tr style="border-bottom:1px solid #e5e7eb">
             <td style="padding:8px 12px;font-weight:600">${r.ticker}</td>
             <td style="padding:8px 12px">$${r.latestPrice.toFixed(2)}<br><span style="font-size:0.8em;color:#6b7280">${r.latestDate}</span></td>
+            <td style="padding:8px 12px">${fmt(r.sma10, 2, '$')}</td>
+            <td style="padding:8px 12px">${fmt(r.sma20, 2, '$')}</td>
             <td style="padding:8px 12px">${fmt(r.sma50, 2, '$')}</td>
             <td style="padding:8px 12px">${fmt(r.sma100, 2, '$')}</td>
             <td style="padding:8px 12px;font-size:0.85em;line-height:1.6">${signalsHtml}</td>
@@ -331,6 +360,8 @@ function buildEmailBody(results) {
                 <tr style="background:#f3f4f6">
                     <th style="padding:10px 12px;text-align:left">Ticker</th>
                     <th style="padding:10px 12px;text-align:left">Price</th>
+                    <th style="padding:10px 12px;text-align:left">SMA-10</th>
+                    <th style="padding:10px 12px;text-align:left">SMA-20</th>
                     <th style="padding:10px 12px;text-align:left">SMA-50</th>
                     <th style="padding:10px 12px;text-align:left">SMA-100</th>
                     <th style="padding:10px 12px;text-align:left">Signals</th>
