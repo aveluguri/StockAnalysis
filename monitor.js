@@ -8,7 +8,7 @@ import nodemailer from 'nodemailer';
 // ---------------------------------------------------------------------------
 const TICKERS = process.env.TICKERS
     ? process.env.TICKERS.split(',').map(t => t.trim().toUpperCase()).filter(Boolean)
-    : ['CRWD', 'GOOG', 'MSFT', 'NVDA'];
+    : ['DRAM', 'MU', 'SNDK', 'INTC',  'AMZN', 'GOOG', 'MSFT',  'NVDA', 'META', 'CRWD'];
 const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
 const API_RATE_LIMIT_DELAY = 12000; // 12 s between calls (free-tier limit)
 
