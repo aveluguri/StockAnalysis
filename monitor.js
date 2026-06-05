@@ -8,7 +8,7 @@ import nodemailer from 'nodemailer';
 // ---------------------------------------------------------------------------
 const TICKERS = process.env.TICKERS
     ? process.env.TICKERS.split(',').map(t => t.trim().toUpperCase()).filter(Boolean)
-    : ['DRAM', 'MU', 'SNDK', 'INTC',  'AMZN', 'GOOG', 'MSFT',  'NVDA', 'META', 'CRWD'];
+    : ['DRAM', 'MU', 'SNDK', 'INTC', 'AVGO', 'CRDO', 'CBRS', 'ARM', 'AMD', 'ALAB'];
 const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
 const API_RATE_LIMIT_DELAY = 12000; // 12 s between calls (free-tier limit)
 
@@ -158,7 +158,6 @@ function processStockData(data, ticker) {
 
     const ema10  = calculateEMA(closingPrices, 10);
     const ema20  = calculateEMA(closingPrices, 20);
-    const ema50  = calculateEMA(closingPrices, 50);
     const rsi    = calculateRSI(closingPrices);
     const macd   = calculateMACD(closingPrices);
     const bb     = calculateBollingerBands(closingPrices);
@@ -188,26 +187,11 @@ function processStockData(data, ticker) {
             : { text: `${Math.abs(diff)}% below 20-day EMA ($${ema20.toFixed(2)}) — Bearish`, type: 'bearish' });
     }
 
-    // Price vs EMA-50
-    if (ema50 !== null) {
-        const diff = ((latestPrice - ema50) / ema50 * 100).toFixed(2);
-        signals.push(latestPrice > ema50
-            ? { text: `${Math.abs(diff)}% above 50-day EMA ($${ema50.toFixed(2)}) — Bullish`, type: 'bullish' }
-            : { text: `${Math.abs(diff)}% below 50-day EMA ($${ema50.toFixed(2)}) — Bearish`, type: 'bearish' });
-    }
-
     // Short-term Golden / Death Cross (EMA-10 vs EMA-20)
     if (ema10 !== null && ema20 !== null) {
         signals.push(ema10 > ema20
             ? { text: 'Short-term Golden Cross: 10-day EMA above 20-day EMA — Bullish', type: 'bullish' }
             : { text: 'Short-term Death Cross: 10-day EMA below 20-day EMA — Bearish', type: 'bearish' });
-    }
-
-    // Long-term Golden / Death Cross (EMA-20 vs EMA-50)
-    if (ema20 !== null && ema50 !== null) {
-        signals.push(ema20 > ema50
-            ? { text: 'Long-term Golden Cross: 20-day EMA above 50-day EMA — Bullish', type: 'bullish' }
-            : { text: 'Long-term Death Cross: 20-day EMA below 50-day EMA — Bearish', type: 'bearish' });
     }
 
     // RSI
@@ -243,7 +227,6 @@ function processStockData(data, ticker) {
         latestPrice,
         ema10,
         ema20,
-        ema50,
         rsi,
         macd,
         bb,
@@ -278,7 +261,7 @@ function buildEmailBody(results) {
     for (const r of results) {
         if (r.error) { text += `${r.ticker}: ERROR — ${r.error}\n\n`; continue; }
         text += `${r.ticker}  |  $${r.latestPrice.toFixed(2)}  |  As of ${r.latestDate}\n`;
-        text += `  EMA-10: ${fmt(r.ema10, 2, '$')}  |  EMA-20: ${fmt(r.ema20, 2, '$')}  |  EMA-50: ${fmt(r.ema50, 2, '$')}\n`;
+        text += `  EMA-10: ${fmt(r.ema10, 2, '$')}  |  EMA-20: ${fmt(r.ema20, 2, '$')}\n`;
         text += `  RSI(14): ${fmt(r.rsi, 1)}  |  MACD: ${r.macd ? r.macd.macd.toFixed(3) : 'N/A'}  |  Signal: ${r.macd ? r.macd.signal.toFixed(3) : 'N/A'}\n`;
         text += `  Bollinger: $${fmt(r.bb?.lower, 2)} – $${fmt(r.bb?.upper, 2)}\n`;
         text += `  Momentum — 1W: ${fmtPct(r.mom?.week)}  |  1M: ${fmtPct(r.mom?.month)}\n`;
@@ -292,7 +275,7 @@ function buildEmailBody(results) {
     let emaRows = '';
     for (const r of results) {
         if (r.error) {
-            emaRows += `<tr><td colspan="6" style="color:#dc2626;padding:8px 12px">${r.ticker}: ${r.error}</td></tr>`;
+            emaRows += `<tr><td colspan="5" style="color:#dc2626;padding:8px 12px">${r.ticker}: ${r.error}</td></tr>`;
             continue;
         }
         const signalsHtml = r.signals.map(s =>
@@ -304,7 +287,6 @@ function buildEmailBody(results) {
             <td style="padding:8px 12px">$${r.latestPrice.toFixed(2)}<br><span style="font-size:0.8em;color:#6b7280">${r.latestDate}</span></td>
             <td style="padding:8px 12px">${fmt(r.ema10, 2, '$')}</td>
             <td style="padding:8px 12px">${fmt(r.ema20, 2, '$')}</td>
-            <td style="padding:8px 12px">${fmt(r.ema50, 2, '$')}</td>
             <td style="padding:8px 12px;font-size:0.85em;line-height:1.6">${signalsHtml}</td>
         </tr>`;
     }
@@ -354,7 +336,6 @@ function buildEmailBody(results) {
                     <th style="padding:10px 12px;text-align:left">Price</th>
                     <th style="padding:10px 12px;text-align:left">EMA-10</th>
                     <th style="padding:10px 12px;text-align:left">EMA-20</th>
-                    <th style="padding:10px 12px;text-align:left">EMA-50</th>
                     <th style="padding:10px 12px;text-align:left">Signals</th>
                 </tr>
             </thead>
