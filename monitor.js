@@ -1,5 +1,5 @@
-// Stock SMA Monitor — Node.js script for GitHub Actions
-// Fetches daily price data, calculates SMAs + TA indicators, and sends a digest email.
+// Stock EMA Monitor — Node.js script for GitHub Actions
+// Fetches daily price data, calculates EMAs + TA indicators, and sends a digest email.
 
 import nodemailer from 'nodemailer';
 
@@ -51,9 +51,12 @@ async function fetchStockData(ticker) {
 // Technical indicator calculations  (prices arrays are newest-first)
 // ---------------------------------------------------------------------------
 
-function calculateSMA(prices, period) {
+function calculateEMA(prices, period) {
     if (prices.length < period) return null;
-    return prices.slice(0, period).reduce((acc, p) => acc + p, 0) / period;
+    const oldest = [...prices].reverse();
+    const emaArr = _emaArray(oldest, period);
+    const last = emaArr[emaArr.length - 1];
+    return last !== null && last !== undefined ? last : null;
 }
 
 // Returns an array of EMAs aligned to `prices` (oldest-first input expected internally)
@@ -153,10 +156,9 @@ function processStockData(data, ticker) {
     const latestPrice   = parseFloat(timeSeries[latestDate]['4. close']);
     const closingPrices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
 
-    const sma10  = calculateSMA(closingPrices, 10);
-    const sma20  = calculateSMA(closingPrices, 20);
-    const sma50  = calculateSMA(closingPrices, 50);
-    const sma100 = calculateSMA(closingPrices, 100);
+    const ema10  = calculateEMA(closingPrices, 10);
+    const ema20  = calculateEMA(closingPrices, 20);
+    const ema50  = calculateEMA(closingPrices, 50);
     const rsi    = calculateRSI(closingPrices);
     const macd   = calculateMACD(closingPrices);
     const bb     = calculateBollingerBands(closingPrices);
@@ -170,50 +172,42 @@ function processStockData(data, ticker) {
         signals.push({ text: `Warning: Data is ${daysDiff} days old`, type: 'warning' });
     }
 
-    // Price vs SMA-10
-    if (sma10 !== null) {
-        const diff = ((latestPrice - sma10) / sma10 * 100).toFixed(2);
-        signals.push(latestPrice > sma10
-            ? { text: `${Math.abs(diff)}% above 10-day SMA ($${sma10.toFixed(2)}) — Bullish`, type: 'bullish' }
-            : { text: `${Math.abs(diff)}% below 10-day SMA ($${sma10.toFixed(2)}) — Bearish`, type: 'bearish' });
+    // Price vs EMA-10
+    if (ema10 !== null) {
+        const diff = ((latestPrice - ema10) / ema10 * 100).toFixed(2);
+        signals.push(latestPrice > ema10
+            ? { text: `${Math.abs(diff)}% above 10-day EMA ($${ema10.toFixed(2)}) — Bullish`, type: 'bullish' }
+            : { text: `${Math.abs(diff)}% below 10-day EMA ($${ema10.toFixed(2)}) — Bearish`, type: 'bearish' });
     }
 
-    // Price vs SMA-20
-    if (sma20 !== null) {
-        const diff = ((latestPrice - sma20) / sma20 * 100).toFixed(2);
-        signals.push(latestPrice > sma20
-            ? { text: `${Math.abs(diff)}% above 20-day SMA ($${sma20.toFixed(2)}) — Bullish`, type: 'bullish' }
-            : { text: `${Math.abs(diff)}% below 20-day SMA ($${sma20.toFixed(2)}) — Bearish`, type: 'bearish' });
+    // Price vs EMA-20
+    if (ema20 !== null) {
+        const diff = ((latestPrice - ema20) / ema20 * 100).toFixed(2);
+        signals.push(latestPrice > ema20
+            ? { text: `${Math.abs(diff)}% above 20-day EMA ($${ema20.toFixed(2)}) — Bullish`, type: 'bullish' }
+            : { text: `${Math.abs(diff)}% below 20-day EMA ($${ema20.toFixed(2)}) — Bearish`, type: 'bearish' });
     }
 
-    // Price vs SMA-50
-    if (sma50 !== null) {
-        const diff = ((latestPrice - sma50) / sma50 * 100).toFixed(2);
-        signals.push(latestPrice > sma50
-            ? { text: `${Math.abs(diff)}% above 50-day SMA ($${sma50.toFixed(2)}) — Bullish`, type: 'bullish' }
-            : { text: `${Math.abs(diff)}% below 50-day SMA ($${sma50.toFixed(2)}) — Bearish`, type: 'bearish' });
+    // Price vs EMA-50
+    if (ema50 !== null) {
+        const diff = ((latestPrice - ema50) / ema50 * 100).toFixed(2);
+        signals.push(latestPrice > ema50
+            ? { text: `${Math.abs(diff)}% above 50-day EMA ($${ema50.toFixed(2)}) — Bullish`, type: 'bullish' }
+            : { text: `${Math.abs(diff)}% below 50-day EMA ($${ema50.toFixed(2)}) — Bearish`, type: 'bearish' });
     }
 
-    // Price vs SMA-100
-    if (sma100 !== null) {
-        const diff = ((latestPrice - sma100) / sma100 * 100).toFixed(2);
-        signals.push(latestPrice > sma100
-            ? { text: `${Math.abs(diff)}% above 100-day SMA ($${sma100.toFixed(2)}) — Bullish`, type: 'bullish' }
-            : { text: `${Math.abs(diff)}% below 100-day SMA ($${sma100.toFixed(2)}) — Bearish`, type: 'bearish' });
+    // Short-term Golden / Death Cross (EMA-10 vs EMA-20)
+    if (ema10 !== null && ema20 !== null) {
+        signals.push(ema10 > ema20
+            ? { text: 'Short-term Golden Cross: 10-day EMA above 20-day EMA — Bullish', type: 'bullish' }
+            : { text: 'Short-term Death Cross: 10-day EMA below 20-day EMA — Bearish', type: 'bearish' });
     }
 
-    // Short-term Golden / Death Cross (SMA-10 vs SMA-20)
-    if (sma10 !== null && sma20 !== null) {
-        signals.push(sma10 > sma20
-            ? { text: 'Short-term Golden Cross: 10-day SMA above 20-day SMA — Bullish', type: 'bullish' }
-            : { text: 'Short-term Death Cross: 10-day SMA below 20-day SMA — Bearish', type: 'bearish' });
-    }
-
-    // Long-term Golden / Death Cross (SMA-50 vs SMA-100)
-    if (sma50 !== null && sma100 !== null) {
-        signals.push(sma50 > sma100
-            ? { text: 'Long-term Golden Cross: 50-day SMA above 100-day SMA — Bullish', type: 'bullish' }
-            : { text: 'Long-term Death Cross: 50-day SMA below 100-day SMA — Bearish', type: 'bearish' });
+    // Long-term Golden / Death Cross (EMA-20 vs EMA-50)
+    if (ema20 !== null && ema50 !== null) {
+        signals.push(ema20 > ema50
+            ? { text: 'Long-term Golden Cross: 20-day EMA above 50-day EMA — Bullish', type: 'bullish' }
+            : { text: 'Long-term Death Cross: 20-day EMA below 50-day EMA — Bearish', type: 'bearish' });
     }
 
     // RSI
@@ -247,10 +241,9 @@ function processStockData(data, ticker) {
         ticker: ticker.toUpperCase(),
         latestDate,
         latestPrice,
-        sma10,
-        sma20,
-        sma50,
-        sma100,
+        ema10,
+        ema20,
+        ema50,
         rsi,
         macd,
         bb,
@@ -285,7 +278,7 @@ function buildEmailBody(results) {
     for (const r of results) {
         if (r.error) { text += `${r.ticker}: ERROR — ${r.error}\n\n`; continue; }
         text += `${r.ticker}  |  $${r.latestPrice.toFixed(2)}  |  As of ${r.latestDate}\n`;
-        text += `  SMA-10: ${fmt(r.sma10, 2, '$')}  |  SMA-20: ${fmt(r.sma20, 2, '$')}  |  SMA-50: ${fmt(r.sma50, 2, '$')}  |  SMA-100: ${fmt(r.sma100, 2, '$')}\n`;
+        text += `  EMA-10: ${fmt(r.ema10, 2, '$')}  |  EMA-20: ${fmt(r.ema20, 2, '$')}  |  EMA-50: ${fmt(r.ema50, 2, '$')}\n`;
         text += `  RSI(14): ${fmt(r.rsi, 1)}  |  MACD: ${r.macd ? r.macd.macd.toFixed(3) : 'N/A'}  |  Signal: ${r.macd ? r.macd.signal.toFixed(3) : 'N/A'}\n`;
         text += `  Bollinger: $${fmt(r.bb?.lower, 2)} – $${fmt(r.bb?.upper, 2)}\n`;
         text += `  Momentum — 1W: ${fmtPct(r.mom?.week)}  |  1M: ${fmtPct(r.mom?.month)}\n`;
@@ -295,24 +288,23 @@ function buildEmailBody(results) {
     }
 
     // --- HTML ---
-    // Table 1: Price + SMAs + Signals
-    let smaRows = '';
+    // Table 1: Price + EMAs + Signals
+    let emaRows = '';
     for (const r of results) {
         if (r.error) {
-            smaRows += `<tr><td colspan="7" style="color:#dc2626;padding:8px 12px">${r.ticker}: ${r.error}</td></tr>`;
+            emaRows += `<tr><td colspan="6" style="color:#dc2626;padding:8px 12px">${r.ticker}: ${r.error}</td></tr>`;
             continue;
         }
         const signalsHtml = r.signals.map(s =>
             `<span style="color:${signalColor[s.type] || '#374151'}">${s.text}</span>`
         ).join('<br>');
-        smaRows += `
+        emaRows += `
         <tr style="border-bottom:1px solid #e5e7eb">
             <td style="padding:8px 12px;font-weight:600">${r.ticker}</td>
             <td style="padding:8px 12px">$${r.latestPrice.toFixed(2)}<br><span style="font-size:0.8em;color:#6b7280">${r.latestDate}</span></td>
-            <td style="padding:8px 12px">${fmt(r.sma10, 2, '$')}</td>
-            <td style="padding:8px 12px">${fmt(r.sma20, 2, '$')}</td>
-            <td style="padding:8px 12px">${fmt(r.sma50, 2, '$')}</td>
-            <td style="padding:8px 12px">${fmt(r.sma100, 2, '$')}</td>
+            <td style="padding:8px 12px">${fmt(r.ema10, 2, '$')}</td>
+            <td style="padding:8px 12px">${fmt(r.ema20, 2, '$')}</td>
+            <td style="padding:8px 12px">${fmt(r.ema50, 2, '$')}</td>
             <td style="padding:8px 12px;font-size:0.85em;line-height:1.6">${signalsHtml}</td>
         </tr>`;
     }
@@ -360,14 +352,13 @@ function buildEmailBody(results) {
                 <tr style="background:#f3f4f6">
                     <th style="padding:10px 12px;text-align:left">Ticker</th>
                     <th style="padding:10px 12px;text-align:left">Price</th>
-                    <th style="padding:10px 12px;text-align:left">SMA-10</th>
-                    <th style="padding:10px 12px;text-align:left">SMA-20</th>
-                    <th style="padding:10px 12px;text-align:left">SMA-50</th>
-                    <th style="padding:10px 12px;text-align:left">SMA-100</th>
+                    <th style="padding:10px 12px;text-align:left">EMA-10</th>
+                    <th style="padding:10px 12px;text-align:left">EMA-20</th>
+                    <th style="padding:10px 12px;text-align:left">EMA-50</th>
                     <th style="padding:10px 12px;text-align:left">Signals</th>
                 </tr>
             </thead>
-            <tbody>${smaRows}</tbody>
+            <tbody>${emaRows}</tbody>
         </table>
 
         <h3 style="margin-top:28px;margin-bottom:8px">Technical Indicators</h3>
@@ -387,7 +378,7 @@ function buildEmailBody(results) {
 
         <p style="margin-top:28px;font-size:0.75em;color:#9ca3af">
             RSI &gt; 70 overbought · RSI &lt; 30 oversold · MACD histogram positive = bullish momentum · Bollinger BW = band width
-            <br>Generated by Stock SMA Monitor · GitHub Actions
+            <br>Generated by Stock EMA Monitor · GitHub Actions
         </p>
     </body>
     </html>`;
