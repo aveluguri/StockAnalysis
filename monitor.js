@@ -187,13 +187,6 @@ function processStockData(data, ticker) {
             : { text: `${Math.abs(diff)}% below 20-day EMA ($${ema20.toFixed(2)}) — Bearish`, type: 'bearish' });
     }
 
-    // Short-term Golden / Death Cross (EMA-10 vs EMA-20)
-    if (ema10 !== null && ema20 !== null) {
-        signals.push(ema10 > ema20
-            ? { text: 'Short-term Golden Cross: 10-day EMA above 20-day EMA — Bullish', type: 'bullish' }
-            : { text: 'Short-term Death Cross: 10-day EMA below 20-day EMA — Bearish', type: 'bearish' });
-    }
-
     // RSI
     if (rsi !== null) {
         const r = rsi.toFixed(1);
