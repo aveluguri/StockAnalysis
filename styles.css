@@ -199,7 +199,7 @@ h1 {
     letter-spacing: 0.5px;
 }
 
-.price-value, .sma-value {
+.price-value, .ema-value {
     font-size: 28px;
     font-weight: bold;
     color: #333;
@@ -211,7 +211,7 @@ h1 {
     font-size: 12px;
 }
 
-.sma-status {
+.ema-status {
     font-size: 14px;
     padding: 5px 10px;
     border-radius: 4px;
@@ -219,19 +219,19 @@ h1 {
     margin-top: 5px;
 }
 
-.sma-status.bullish {
+.ema-status.bullish {
     background: #e8f5e9;
     color: #27ae60;
     border-left: 3px solid #27ae60;
 }
 
-.sma-status.bearish {
+.ema-status.bearish {
     background: #ffebee;
     color: #e74c3c;
     border-left: 3px solid #e74c3c;
 }
 
-.sma-status.warning {
+.ema-status.warning {
     background: #fff3e0;
     color: #f39c12;
     border-left: 3px solid #f39c12;

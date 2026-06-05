@@ -121,14 +121,25 @@ async function fetchStockData(ticker) {
     }
 }
 
-// SMA Calculation Functions
-function calculateSMA(prices, period) {
+// EMA Calculation Functions
+// Standard EMA seeded with the first SMA(period). Input `prices` is newest-first.
+function calculateEMA(prices, period) {
     if (prices.length < period) {
         return null;
     }
 
-    const sum = prices.slice(0, period).reduce((acc, price) => acc + price, 0);
-    return sum / period;
+    // Reverse to oldest-first for the running EMA
+    const oldest = [...prices].reverse();
+    const k = 2 / (period + 1);
+
+    // Seed with SMA of the first `period` values
+    let ema = oldest.slice(0, period).reduce((a, b) => a + b, 0) / period;
+
+    // Apply EMA recurrence over the remaining values
+    for (let i = period; i < oldest.length; i++) {
+        ema = oldest[i] * k + ema * (1 - k);
+    }
+    return ema;
 }
 
 function processStockData(data, ticker) {
@@ -142,11 +153,9 @@ function processStockData(data, ticker) {
     // Extract closing prices (newest first)
     const closingPrices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
 
-    // Calculate SMAs
-    const sma10 = calculateSMA(closingPrices, 10);
-    const sma20 = calculateSMA(closingPrices, 20);
-    const sma50 = calculateSMA(closingPrices, 50);
-    const sma100 = calculateSMA(closingPrices, 100);
+    // Calculate EMAs
+    const ema10 = calculateEMA(closingPrices, 10);
+    const ema20 = calculateEMA(closingPrices, 20);
 
     // Generate technical signals
     const signals = [];
@@ -163,86 +172,44 @@ function processStockData(data, ticker) {
         });
     }
 
-    // Price vs 10-day SMA
-    if (sma10 !== null) {
-        const diffPercent = ((latestPrice - sma10) / sma10 * 100).toFixed(2);
-        if (latestPrice > sma10) {
+    // Price vs 10-day EMA
+    if (ema10 !== null) {
+        const diffPercent = ((latestPrice - ema10) / ema10 * 100).toFixed(2);
+        if (latestPrice > ema10) {
             signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% above 10-day SMA ($${sma10.toFixed(2)}) - Bullish`,
+                text: `Price is ${Math.abs(diffPercent)}% above 10-day EMA ($${ema10.toFixed(2)}) - Bullish`,
                 type: 'bullish'
             });
         } else {
             signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% below 10-day SMA ($${sma10.toFixed(2)}) - Bearish`,
+                text: `Price is ${Math.abs(diffPercent)}% below 10-day EMA ($${ema10.toFixed(2)}) - Bearish`,
                 type: 'bearish'
             });
         }
     } else {
         signals.push({
-            text: `Insufficient data for 10-day SMA (need 10 days, have ${closingPrices.length})`,
+            text: `Insufficient data for 10-day EMA (need 10 days, have ${closingPrices.length})`,
             type: 'warning'
         });
     }
 
-    // Price vs 20-day SMA
-    if (sma20 !== null) {
-        const diffPercent = ((latestPrice - sma20) / sma20 * 100).toFixed(2);
-        if (latestPrice > sma20) {
+    // Price vs 20-day EMA
+    if (ema20 !== null) {
+        const diffPercent = ((latestPrice - ema20) / ema20 * 100).toFixed(2);
+        if (latestPrice > ema20) {
             signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% above 20-day SMA ($${sma20.toFixed(2)}) - Bullish`,
+                text: `Price is ${Math.abs(diffPercent)}% above 20-day EMA ($${ema20.toFixed(2)}) - Bullish`,
                 type: 'bullish'
             });
         } else {
             signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% below 20-day SMA ($${sma20.toFixed(2)}) - Bearish`,
+                text: `Price is ${Math.abs(diffPercent)}% below 20-day EMA ($${ema20.toFixed(2)}) - Bearish`,
                 type: 'bearish'
             });
         }
     } else {
         signals.push({
-            text: `Insufficient data for 20-day SMA (need 20 days, have ${closingPrices.length})`,
-            type: 'warning'
-        });
-    }
-
-    // Price vs 50-day SMA
-    if (sma50 !== null) {
-        const diffPercent = ((latestPrice - sma50) / sma50 * 100).toFixed(2);
-        if (latestPrice > sma50) {
-            signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% above 50-day SMA ($${sma50.toFixed(2)}) - Bullish`,
-                type: 'bullish'
-            });
-        } else {
-            signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% below 50-day SMA ($${sma50.toFixed(2)}) - Bearish`,
-                type: 'bearish'
-            });
-        }
-    } else {
-        signals.push({
-            text: `Insufficient data for 50-day SMA (need 50 days, have ${closingPrices.length})`,
-            type: 'warning'
-        });
-    }
-
-    // Price vs 100-day SMA
-    if (sma100 !== null) {
-        const diffPercent = ((latestPrice - sma100) / sma100 * 100).toFixed(2);
-        if (latestPrice > sma100) {
-            signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% above 100-day SMA ($${sma100.toFixed(2)}) - Bullish`,
-                type: 'bullish'
-            });
-        } else {
-            signals.push({
-                text: `Price is ${Math.abs(diffPercent)}% below 100-day SMA ($${sma100.toFixed(2)}) - Bearish`,
-                type: 'bearish'
-            });
-        }
-    } else {
-        signals.push({
-            text: `Insufficient data for 100-day SMA (need 100 days, have ${closingPrices.length})`,
+            text: `Insufficient data for 20-day EMA (need 20 days, have ${closingPrices.length})`,
             type: 'warning'
         });
     }
@@ -251,10 +218,8 @@ function processStockData(data, ticker) {
         ticker: ticker.toUpperCase(),
         latestDate: latestDate,
         latestPrice: latestPrice,
-        sma10: sma10,
-        sma20: sma20,
-        sma50: sma50,
-        sma100: sma100,
+        ema10: ema10,
+        ema20: ema20,
         signals: signals,
         dataPoints: closingPrices.length
     };
@@ -264,11 +229,11 @@ function processStockData(data, ticker) {
 let fileHandle = null;
 
 // File Export Functions
-async function saveToFile(ticker, currentPrice, sma50) {
+async function saveToFile(ticker, currentPrice, ema20) {
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
     // Create the line to append
-    const newLine = `${timestamp} | Ticker: ${ticker} | Current Price: $${currentPrice.toFixed(2)} | 50-Day SMA: ${sma50 !== null ? '$' + sma50.toFixed(2) : 'N/A'}\n`;
+    const newLine = `${timestamp} | Ticker: ${ticker} | Current Price: $${currentPrice.toFixed(2)} | 20-Day EMA: ${ema20 !== null ? '$' + ema20.toFixed(2) : 'N/A'}\n`;
 
     // Check if File System Access API is supported
     if ('showSaveFilePicker' in window) {
@@ -311,12 +276,12 @@ async function saveToFile(ticker, currentPrice, sma50) {
     } else {
         // Fallback for browsers that don't support File System Access API
         console.warn('File System Access API not supported, falling back to download');
-        fallbackSaveToFile(ticker, currentPrice, sma50, timestamp, newLine);
+        fallbackSaveToFile(ticker, currentPrice, ema20, timestamp, newLine);
     }
 }
 
 // Fallback function for browsers without File System Access API
-function fallbackSaveToFile(ticker, currentPrice, sma50, timestamp, newLine) {
+function fallbackSaveToFile(ticker, currentPrice, ema20, timestamp, newLine) {
     // Get existing data from localStorage
     let searchHistory = [];
     try {
@@ -333,7 +298,7 @@ function fallbackSaveToFile(ticker, currentPrice, sma50, timestamp, newLine) {
         timestamp: timestamp,
         ticker: ticker,
         currentPrice: currentPrice,
-        sma50: sma50
+        ema20: ema20
     };
     searchHistory.push(newEntry);
 
@@ -349,7 +314,8 @@ function fallbackSaveToFile(ticker, currentPrice, sma50, timestamp, newLine) {
     fileContent += '='.repeat(80) + '\n';
 
     searchHistory.forEach(entry => {
-        fileContent += `${entry.timestamp} | Ticker: ${entry.ticker} | Current Price: $${entry.currentPrice.toFixed(2)} | 50-Day SMA: ${entry.sma50 !== null ? '$' + entry.sma50.toFixed(2) : 'N/A'}\n`;
+        const emaVal = entry.ema20 !== undefined ? entry.ema20 : null;
+        fileContent += `${entry.timestamp} | Ticker: ${entry.ticker} | Current Price: $${entry.currentPrice.toFixed(2)} | 20-Day EMA: ${emaVal !== null ? '$' + emaVal.toFixed(2) : 'N/A'}\n`;
     });
 
     // Create a blob and trigger download
@@ -400,14 +366,10 @@ function displayResults(analysis) {
     const resultTicker = document.getElementById('resultTicker');
     const currentPrice = document.getElementById('currentPrice');
     const priceDate = document.getElementById('priceDate');
-    const sma10 = document.getElementById('sma10');
-    const sma10Status = document.getElementById('sma10Status');
-    const sma20 = document.getElementById('sma20');
-    const sma20Status = document.getElementById('sma20Status');
-    const sma50 = document.getElementById('sma50');
-    const sma50Status = document.getElementById('sma50Status');
-    const sma100 = document.getElementById('sma100');
-    const sma100Status = document.getElementById('sma100Status');
+    const ema10 = document.getElementById('ema10');
+    const ema10Status = document.getElementById('ema10Status');
+    const ema20 = document.getElementById('ema20');
+    const ema20Status = document.getElementById('ema20Status');
     const technicalSignals = document.getElementById('technicalSignals');
 
     // Populate results
@@ -415,29 +377,27 @@ function displayResults(analysis) {
     currentPrice.textContent = `$${analysis.latestPrice.toFixed(2)}`;
     priceDate.textContent = `As of ${analysis.latestDate}`;
 
-    // Helper to render an SMA card value + status
-    function renderSMA(smaEl, statusEl, smaValue, period) {
-        if (smaValue !== null) {
-            smaEl.textContent = `$${smaValue.toFixed(2)}`;
-            const diff = ((analysis.latestPrice - smaValue) / smaValue * 100).toFixed(2);
-            if (analysis.latestPrice > smaValue) {
+    // Helper to render an EMA card value + status
+    function renderEMA(emaEl, statusEl, emaValue, period) {
+        if (emaValue !== null) {
+            emaEl.textContent = `$${emaValue.toFixed(2)}`;
+            const diff = ((analysis.latestPrice - emaValue) / emaValue * 100).toFixed(2);
+            if (analysis.latestPrice > emaValue) {
                 statusEl.textContent = `${Math.abs(diff)}% above`;
-                statusEl.className = 'sma-status bullish';
+                statusEl.className = 'ema-status bullish';
             } else {
                 statusEl.textContent = `${Math.abs(diff)}% below`;
-                statusEl.className = 'sma-status bearish';
+                statusEl.className = 'ema-status bearish';
             }
         } else {
-            smaEl.textContent = 'N/A';
+            emaEl.textContent = 'N/A';
             statusEl.textContent = 'Insufficient data';
-            statusEl.className = 'sma-status warning';
+            statusEl.className = 'ema-status warning';
         }
     }
 
-    renderSMA(sma10, sma10Status, analysis.sma10, 10);
-    renderSMA(sma20, sma20Status, analysis.sma20, 20);
-    renderSMA(sma50, sma50Status, analysis.sma50, 50);
-    renderSMA(sma100, sma100Status, analysis.sma100, 100);
+    renderEMA(ema10, ema10Status, analysis.ema10, 10);
+    renderEMA(ema20, ema20Status, analysis.ema20, 20);
 
     // Technical signals
     technicalSignals.innerHTML = '';
@@ -631,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     displayResults(analysis);
 
                     // Save ticker data to file
-                    saveToFile(analysis.ticker, analysis.latestPrice, analysis.sma50);
+                    saveToFile(analysis.ticker, analysis.latestPrice, analysis.ema20);
                 })
                 .catch(error => {
                     hideLoading();

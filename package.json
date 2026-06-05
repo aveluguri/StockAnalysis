@@ -1,8 +1,8 @@
 {
-  "name": "stock-sma-monitor",
+  "name": "stock-ema-monitor",
   "version": "1.0.0",
   "type": "module",
-  "description": "Scheduled stock SMA monitor with Gmail digest",
+  "description": "Scheduled stock EMA monitor with Gmail digest",
   "scripts": {
     "monitor": "node monitor.js"
   },

@@ -1,4 +1,4 @@
-name: Stock SMA Monitor
+name: Stock EMA Monitor
 
 on:
   schedule:
@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run SMA monitor
+      - name: Run EMA monitor
         run: node monitor.js
         env:
           ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
