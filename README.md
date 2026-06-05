@@ -6,7 +6,6 @@ Stock SMA analysis tool with a browser UI and an automated daily email digest vi
 
 - Enter any US market ticker to fetch the latest price from Alpha Vantage
 - Displays SMA-50 and SMA-100 with bullish/bearish signals
-- Detects Golden Cross / Death Cross (50-day vs 100-day SMA)
 - Saves search history to a local file (File System Access API, with localStorage fallback)
 
 ## Automated Daily Digest (GitHub Actions)

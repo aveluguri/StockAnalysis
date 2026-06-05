@@ -247,36 +247,6 @@ function processStockData(data, ticker) {
         });
     }
 
-    // Golden Cross / Death Cross (SMA10 vs SMA20 - short-term)
-    if (sma10 !== null && sma20 !== null) {
-        if (sma10 > sma20) {
-            signals.push({
-                text: 'Short-term Golden Cross: 10-day SMA is above 20-day SMA - Bullish',
-                type: 'bullish'
-            });
-        } else {
-            signals.push({
-                text: 'Short-term Death Cross: 10-day SMA is below 20-day SMA - Bearish',
-                type: 'bearish'
-            });
-        }
-    }
-
-    // Golden Cross / Death Cross (SMA50 vs SMA100 - long-term)
-    if (sma50 !== null && sma100 !== null) {
-        if (sma50 > sma100) {
-            signals.push({
-                text: 'Long-term Golden Cross: 50-day SMA is above 100-day SMA - Bullish',
-                type: 'bullish'
-            });
-        } else {
-            signals.push({
-                text: 'Long-term Death Cross: 50-day SMA is below 100-day SMA - Bearish',
-                type: 'bearish'
-            });
-        }
-    }
-
     return {
         ticker: ticker.toUpperCase(),
         latestDate: latestDate,
